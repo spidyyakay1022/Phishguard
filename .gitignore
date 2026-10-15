@@ -1,9 +1,22 @@
-.env
-.env.*
-!.env.example
+# Python
 __pycache__/
 *.py[cod]
 venv/
 .venv/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Frontend
 node_modules/
 dist/
+
+# OS
+.DS_Store
+
+# Never commit secrets
+.env
+.env.*
+!.env.example
