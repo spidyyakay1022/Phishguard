@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PhishGuard AI | Scam Detection</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#08111f;color:#edf5ff;font:15px system-ui,Arial}
+main{max-width:1050px;margin:auto;padding:30px 20px}
+header{font-size:22px;font-weight:800;color:#65e5d2;margin-bottom:55px}
+.hero{text-align:center;margin-bottom:32px}.hero h1{font-size:clamp(36px,6vw,58px);line-height:1.08;margin:12px}
+.hero h1 span{color:#65e5d2}.muted{color:#9aabc2}.hero p{max-width:600px;margin:15px auto}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.panel{background:#101d30;border:1px solid #263950;border-radius:18px;padding:23px;min-width:0}
+h2{font-size:18px;margin-top:0}label{display:block;margin:18px 0 8px;font-size:13px}
+textarea{width:100%;min-height:180px;resize:vertical;background:#091525;color:white;border:1px solid #30445e;border-radius:11px;padding:13px;font:inherit}
+button{padding:12px 16px;border:0;border-radius:10px;background:#65e5d2;color:#071720;font-weight:800;cursor:pointer;margin:12px 6px 0 0}
+button:disabled{opacity:.6}.secondary{background:transparent;border:1px solid #30445e;color:white}
+.score{font-size:49px;font-weight:850}.pill{display:inline-block;border-radius:20px;padding:6px 10px;background:#203b4a;font-size:12px;font-weight:bold}
+.high{color:#ff7188;background:#4b2030}.medium{color:#ffcb76;background:#49391f}.low{color:#75e5ad;background:#183c32}
+li{margin:9px 0}.tag{display:inline-block;border:1px solid #30445e;border-radius:8px;padding:6px;margin:4px;font-size:12px}
+.bar{height:7px;background:#283950;border-radius:9px;overflow:hidden}.fill{height:100%;background:#65e5d2}
+footer{text-align:center;color:#8294ac;font-size:12px;margin-top:28px}
+@media(max-width:720px){.layout{grid-template-columns:1fr}header{margin-bottom:35px}}
+</style>
+</head>
+<body><main>
+<header>⬡ PhishGuard AI</header>
+<section class="hero"><div style="color:#65e5d2;letter-spacing:2px;font-size:11px">THINK BEFORE YOU CLICK</div>
+<h1>Spot the scam.<br><span>Stay one step ahead.</span></h1>
+<p class="muted">Analyse suspicious messages and URLs using layered phishing detection.</p></section>
+<div class="layout">
+<section class="panel"><h2>Message analysis</h2><p class="muted">Paste an SMS, email, suspicious link or job offer.</p>
+<label for="msg">Message or URL</label>
+<textarea id="msg" maxlength="5000" placeholder="Example: Your bank account will be blocked. Update KYC immediately at http://sbi-verify.xyz"></textarea>
+<button id="go" onclick="analyse()">Analyse message →</button><button class="secondary" onclick="document.querySelector('#msg').value=''">Clear</button>
+<p class="muted" id="status" aria-live="polite">Your message is sent to the detection engine.</p>
+<button class="secondary" onclick="document.querySelector('#msg').value='Your SBI account will be blocked today. Update KYC immediately at http://sbi-verify.xyz'">Try phishing sample</button>
+<button class="secondary" onclick="document.querySelector('#msg').value='Reminder: Your appointment is confirmed for tomorrow at 10 AM.'">Try normal sample</button>
+</section>
+<section class="panel" id="result"><h2>Security report</h2><p class="muted">Your analysis will appear here.</p><p>◈</p><p class="muted">Risk score · Verdict · Warning signs · Safety steps</p></section>
+</div>
+<footer>PhishGuard AI · Results are decision support, not a guarantee of safety.</footer>
+</main>
+<script>
+const el=id=>document.getElementById(id);
+function esc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function analyse(){
+ const text=el('msg').value.trim();
+ if(!text){el('status').textContent='Please enter a message first.';return;}
+ const b=el('go');b.disabled=true;el('status').textContent='Analysing…';
+ try{
+  const r=await fetch('/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+  const d=await r.json();
+  if(!r.ok||d.error)throw Error(d.error||'Analysis failed');
+  const n=Math.max(0,Math.min(100,Number(d.risk_score)||0));
+  const v=String(d.verdict||'UNKNOWN').toUpperCase();
+  const cls=v.includes('HIGH')?'high':v.includes('MEDIUM')?'medium':'low';
+  const indicators=Array.isArray(d.indicators)?d.indicators:[];
+  const urls=Array.isArray(d.url_analysis)?d.url_analysis:[];
+  const steps=Array.isArray(d.safe_steps)?d.safe_steps:[];
+  el('result').innerHTML=`<h2>Security report</h2><div class="score">${n}<span class="muted" style="font-size:15px"> / 100</span></div><p><span class="pill ${cls}">${esc(v)}</span></p><div class="bar"><div class="fill" style="width:${n}%"></div></div>
+  <h3>Explanation</h3><p>${esc(d.explanation||'No explanation provided.')}</p>
+  ${d.impersonated_entity?'<p>Possible impersonation: <b>'+esc(d.impersonated_entity)+'</b></p>':''}
+  <h3>Warning indicators</h3>${indicators.length?indicators.map(x=>'<span class="tag">'+esc(x)+'</span>').join(''):'<p class="muted">No indicators returned.</p>'}
+  ${urls.length?'<h3>URL findings</h3>'+urls.map(u=>'<p><b>'+esc(u.url)+'</b><br>'+esc((u.issues||[]).join('; ')||'No issues listed')+'</p>').join(''):''}
+  <h3>Recommended next steps</h3><ul>${steps.map(x=>'<li>'+esc(x)+'</li>').join('')}</ul>
+  ${d.note?'<p style="color:#ffcb76">'+esc(d.note)+'</p>':''}`;
+  el('status').textContent='Analysis complete.';
+ }catch(e){el('status').textContent='Error: '+e.message+'. Check backend logs.';}
+ finally{b.disabled=false;}
+}
+</script></body></html>
