@@ -98,5 +98,6 @@ Use placeholder values in example files. Never commit real API keys, passwords, 
 PhishGuard AI is an assistance tool, not a guarantee that a message or URL is safe. Users should independently verify unexpected requests through official channels.
 
 ## 11. Team
-Team name : Tech NOVA
+Team name : Charizard
+
 Team members : Aksshay Trepathi, Prakhar Sharma,Aanya Sharma, Janya Nagar
