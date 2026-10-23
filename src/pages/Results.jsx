@@ -20,18 +20,19 @@ export default function Results() {
     )
   }
 
-  const { risk_score, summary, findings = [], url_analysis, impersonating, next_steps = [], note, extracted_content, extracted_urls = [] } = result
+  const { risk_score, summary, findings = [], url_analysis, impersonating, next_steps = [], note, extracted_content, extracted_urls = [], verdict, analysis_status } = result
 
   return (
     <section className="py-8">
       <div className="flex flex-col items-center gap-6 rounded-xl border border-line bg-white p-6 sm:flex-row">
         <RiskGauge score={risk_score} />
         <div>
-          <p className="font-display text-3xl font-extrabold" style={{ color: levelColor(risk_score) }}>{levelLabel(risk_score)}</p>
+          <p className="font-display text-3xl font-extrabold" style={{ color: analysis_status === "unverified" ? "var(--color-warn)" : levelColor(risk_score) }}>{analysis_status === "unverified" ? "Unverified" : (verdict && verdict !== "UNVERIFIED" ? verdict : levelLabel(risk_score))}</p>
           <p className="mt-2 text-lg">{summary}</p>
         </div>
       </div>
 
+      {analysis_status === "unverified" && <p role="alert" className="mt-4 rounded-lg border border-line bg-amber-50 p-3 text-sm text-amber-900">Safety could not be verified. A low heuristic score is not proof that this URL is safe. Avoid entering passwords, payment details, or OTPs unless you independently trust the site.</p>}
       {note && <p role="status" className="mt-4 rounded-lg border border-line bg-white p-3 text-sm text-muted">{note}</p>}
       {extracted_content && <details className="mt-6 rounded-lg border border-line bg-white p-4"><summary className="cursor-pointer font-semibold">Review extracted content</summary><p className="mt-3 whitespace-pre-wrap break-words text-sm text-muted">{extracted_content}</p>{extracted_urls.length > 0 && <><h3 className="mt-3 font-semibold">Detected URL text</h3><ul className="list-disc break-all pl-5 text-sm text-muted">{extracted_urls.map((item, i) => <li key={i}>{item}</li>)}</ul></>}</details>}
       <h2 className="mt-10 font-display text-2xl font-semibold">Why it looks this way</h2>
