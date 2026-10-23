@@ -18,6 +18,7 @@ LLM_WEIGHT = 0.6    # 60% AI
 
 app = FastAPI(title="PhishGuard AI - Detection Engine", version="1.0.0")
 
+
 # For local development, localhost origins are allowed. Set CORS_ORIGINS to a
 # comma-separated list of deployed frontend origins in production.
 _origins = [item.strip() for item in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if item.strip()]
@@ -29,8 +30,11 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
+_origins = [item.strip() for item in os.getenv(
+    "CORS_ORIGINS",
+    "https://phishguard-akay10.vercel.app,https://phishguard-peach-eta.vercel.app,http://localhost:5173,http://127.0.0.1:5173"
+).split(",")]
 
-# This describes the JSON we expect: {"text": "..."}
 class AnalyzeRequest(BaseModel):
     text: str = Field(min_length=1, max_length=5000)
     type: str = "message"
