@@ -1,0 +1,28 @@
+name: PWA build checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/pwa-install]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install root dependencies
+        run: npm ci
+      - name: Build root frontend
+        run: npm run build
+      - name: Build frontend directory copy
+        working-directory: frontend
+        run: |
+          npm install
+          npm run build
