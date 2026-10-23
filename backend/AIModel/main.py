@@ -157,6 +157,15 @@ def analyze(body: AnalyzeRequest):
     if rule_result["url_analysis"]:
         final_score = max(final_score, 40)
 
+    # Do not let the AI weighted average dilute a strong advance-fee scam pattern.
+    # A prize/job plus a money request and urgency/sensitive-data request is high risk.
+    rule_indicators = set(rule_result["indicators"])
+    if (
+        "Advance-fee or payment demand" in rule_indicators
+        and ("Prize or reward bait" in rule_indicators or "Fake job offer" in rule_indicators)
+    ):
+        final_score = max(final_score, 85)
+
     # We do not currently query a live domain-reputation/threat-intelligence feed.
     # Never imply that a URL has been verified clean just because heuristics found no issue.
     detected_urls = bool(extract_urls(text))
