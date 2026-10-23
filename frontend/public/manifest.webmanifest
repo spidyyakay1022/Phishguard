@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "PhishGuard AI",
+  "short_name": "PhishGuard",
+  "description": "AI-powered phishing detection to help identify suspicious links and messages.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B1020",
+  "theme_color": "#0B1020",
+  "icons": [
+    {
+      "src": "/icons/phishguard-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

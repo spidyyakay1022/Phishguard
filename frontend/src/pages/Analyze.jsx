@@ -12,9 +12,9 @@ const TABS = [
 const MAX_FILE_BYTES = 5 * 1024 * 1024
 
 function findUrls(text) {
-  return [...new Set((text.match(/(?:https?:\/\/|www\.)[^\s<>"')]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/[^\s<>"')]+)?)/gi) || []).map((url) => url.replace(/[.,;:!?]+$/, ''))]
+  const matches = text.match(/https?:\/\/\S+|www\.\S+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/\S*)?/gi) || []
+  return [...new Set(matches.map((url) => url.replace(/[.,;:!?]+$/, '')))]
 }
-
 async function readImage(file) {
   if (!file || !file.type.startsWith('image/')) throw new Error('Choose a valid image file.')
   if (file.size > MAX_FILE_BYTES) throw new Error('Image must be 5 MB or smaller.')
