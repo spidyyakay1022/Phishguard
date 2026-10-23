@@ -1,103 +1,84 @@
 # PhishGuard AI
 
-**An AI-assisted phishing detection and cybersecurity awareness platform.**
+PhishGuard is an AI-assisted phishing-awareness tool. It analyses pasted messages and links with rule-based checks and (when configured) Gemini, and gives a risk score, indicators, an explanation, and safer next steps. Screenshot text is extracted in the browser with OCR; QR codes can be decoded in the browser. QR destinations are treated as text and are never opened automatically.
 
-## 1. Problem Statement
+> **Important:** The score is an estimate, not a guarantee. Do not paste passwords, OTPs, private keys, or other secrets into the app. OCR can misread text; review the extracted content.
 
-Phishing messages often use urgency, fake KYC requests, suspicious links, and impersonation to trick people into sharing sensitive information. Many users struggle to identify these warning signs.
+## Repository layout
 
-PhishGuard AI aims to help users assess suspicious messages and understand why they may be unsafe.
+```text
+PhishGuard_Fixed/
+├── frontend/                 # React + Vite UI
+│   ├── src/components/
+│   ├── src/pages/
+│   └── src/lib/api.js
+├── backend/AIModel/           # FastAPI, rules engine, optional Gemini analysis
+├── render.yaml
+└── README.md
+```
 
-## 2. Our Solution
+## Run locally
 
-PhishGuard AI analyses message content, identifies common phishing indicators, assigns a risk score, and provides understandable warnings and safety recommendations.
+### 1. Backend
 
-## 3. Key Features
+Python 3.10+ recommended.
 
-- **Risk Scoring:** Provides a risk score from 0 to 100.
-- **Phishing Indicators:** Identifies warning signs such as urgency, fake KYC requests, and impersonation.
-- **Suspicious URL Checks:** Flags URL warning signs, including insecure HTTP connections and risky domain patterns.
-- **Plain-Language Explanations:** Explains why a message may be suspicious.
-- **Safety Recommendations:** Suggests precautions users can take.
-- **Web Interface:** Provides an interface for submitting content for analysis.
+```bash
+cd backend/AIModel
+python -m venv .venv
+# Windows PowerShell:
+.venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+copy .env.example .env       # Windows; on macOS/Linux use: cp .env.example .env
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
 
-*Note: AI-assisted analysis depends on successful AI service availability. Rule-based checks may be used when AI analysis is unavailable.*
+Add your own `GEMINI_API_KEY` to `backend/AIModel/.env` if you want AI analysis. If no key is configured or Gemini fails, the backend uses rule-based checks and marks the response with a note. Never commit `.env`.
 
-## 4. Technology Stack
+Check `http://127.0.0.1:8000/health` and `http://127.0.0.1:8000/docs`.
 
-- Frontend: React, Vite
-- Backend: Python, FastAPI
-- API Communication: HTTP and JSON
-- Deployment: Vercel (frontend), Render (backend)
-- Version Control: Git and GitHub
+### 2. Frontend
 
-## 5. Project Links
+Open a second terminal:
 
-- **Live Prototype:** https://phishguard-akay10.vercel.app/
-- **Backend API:** https://phishguard-api-b4hf.onrender.com
-- **API Documentation:** https://phishguard-api-b4hf.onrender.com/docs
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## 6. Local Setup Instructions
+Open the local URL printed by Vite. In local development, `/api/analyze` is proxied to `http://127.0.0.1:8000/analyze`.
 
-### Backend
+## Deploy
 
-1. Install Python 3.
-2. Open a terminal in the `backend/AIModel` directory.
-3. Install the dependencies:
+### Backend on Render
 
-   `pip install -r requirements.txt`
+This repository includes `render.yaml`. Create a Render Web Service from this repository and set `GEMINI_API_KEY` (optional) and `CORS_ORIGINS` (required for cross-origin browser requests) in the service environment. `CORS_ORIGINS` should be your exact deployed frontend origin, such as `https://your-app.vercel.app`, with no trailing slash. Confirm `/health` returns `{"status":"ok"}`.
 
-4. Configure any required environment variables using the provided example file.
-5. Start the server:
+### Frontend on Vercel
 
-   `uvicorn main:app --reload`
+Import the `frontend` directory as the Vercel project root. Set the build command to `npm run build` and output directory to `dist`. Set `VITE_API_BASE_URL` to the deployed backend origin, for example `https://your-api.onrender.com` (do not append `/analyze`). Redeploy after changing environment variables. Keep the SPA rewrite in `frontend/vercel.json`.
 
-6. Open `http://127.0.0.1:8000/docs` to inspect the API.
+## API
 
-### Frontend
+`POST /analyze`
 
-1. Install Node.js and npm.
-2. Open a terminal in the repository root.
-3. Install dependencies:
+```json
+{"text":"Your account will be suspended. Update KYC at https://example.xyz" , "type":"message"}
+```
 
-   `npm install`
+The `type` field is informational; both messages and links are analysed by the same endpoint. Responses include `risk_score`, `verdict`, `indicators`, `impersonated_entity`, `url_analysis`, `explanation`, `safe_steps`, and optionally `note`.
 
-4. Configure the backend API URL according to the frontend configuration.
-5. Start the development server:
+## Current limitations
 
-   `npm run dev`
+- The rule engine is heuristic and may produce false positives or miss new scam patterns.
+- URL checks inspect text patterns; the app does not visit websites, verify live reputation, or guarantee a destination is safe.
+- Screenshot OCR is currently English-only in the browser. OCR quality depends on image clarity and may need a first-time model download.
+- QR decoding uses the filename-independent mode selector. The decoded destination is not opened automatically.
+- If Gemini is unavailable, the service falls back to rule-only scoring; review the `note` shown on the result.
+- Automated test coverage is limited; test using synthetic examples before presenting or deploying.
 
-Use the local frontend URL printed in the terminal to open the application.
+## Safety
 
-## 7. Environment Variables
-
-Store secrets in environment variables rather than committing them to GitHub.
-
-- `GEMINI_API_KEY` — AI service key, if required by the backend.
-- `GEMINI_MODEL` — AI model configuration, if required.
-- Frontend API URL — configure according to the frontend's API client.
-
-Use placeholder values in example files. Never commit real API keys, passwords, or tokens.
-
-## 8. Target Users
-
-- Students and general internet users
-- People who receive suspicious messages or links
-- Users seeking basic phishing awareness and safety guidance
-
-## 9. Future Roadmap
-
-- Improve AI analysis reliability and error handling.
-- Expand URL and sender reputation checks.
-- Improve multilingual phishing detection.
-- Add more comprehensive testing and security checks.
-- Improve accessibility and mobile usability.
-
-## 10. Disclaimer
-
-PhishGuard AI is an assistance tool, not a guarantee that a message or URL is safe. Users should independently verify unexpected requests through official channels.
-
-## 11. Team
-Team name : Charizard
-
-Team members : Aksshay Trepathi, Prakhar Sharma,Aanya Sharma, Janya Nagar
+Use synthetic or authorised samples only. Do not test on other people's accounts, collect credentials, or open suspicious destinations just to verify them. For suspected financial fraud in India, contact your bank through official channels and consider reporting at cybercrime.gov.in or 1930.

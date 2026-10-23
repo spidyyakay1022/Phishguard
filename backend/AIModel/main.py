@@ -4,9 +4,10 @@ main.py - The web server. It has the /analyze endpoint and joins all 3 layers.
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, HTMLResponse
-from pathlib import Path
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+import os
 
 from rules import analyze_rules
 from llm import analyze_with_llm
@@ -15,12 +16,24 @@ MAX_CHARS = 5000    # longest message we accept
 RULE_WEIGHT = 0.4   # 40% rules
 LLM_WEIGHT = 0.6    # 60% AI
 
-app = FastAPI(title="PhishGuard AI - Detection Engine")
+app = FastAPI(title="PhishGuard AI - Detection Engine", version="1.0.0")
+
+# For local development, localhost origins are allowed. Set CORS_ORIGINS to a
+# comma-separated list of deployed frontend origins in production.
+_origins = [item.strip() for item in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if item.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+)
 
 
 # This describes the JSON we expect: {"text": "..."}
 class AnalyzeRequest(BaseModel):
-    text: str
+    text: str = Field(min_length=1, max_length=5000)
+    type: str = "message"
 
 
 # ---------- Friendly error messages (so the server never just crashes) ----------
@@ -93,14 +106,13 @@ def rules_only_explanation(reasons):
 
 
 # ---------- Health check (open http://localhost:8000 to see it) ----------
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 def home():
-    page = Path(__file__).parent / "static" / "index.html"
-    return HTMLResponse(page.read_text(encoding="utf-8"))
+    return {"service": "PhishGuard AI Detection Engine", "status": "running", "docs": "/docs"}
 
 @app.get("/health")
 def health():
-    return {"status": "PhishGuard AI Detection Engine is running"}
+    return {"status": "ok"}
 
 
 # ---------- The main endpoint ----------
