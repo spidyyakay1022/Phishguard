@@ -5,7 +5,7 @@
 Run these commands from the frontend project directory (the directory containing `package.json`):
 
 ```bash
-npm ci
+npm install
 npm run build
 npm run preview
 ```
