@@ -152,6 +152,15 @@ def analyze(body: AnalyzeRequest):
         final_score = rule_result["score"]   # rules only
     final_score = max(0, min(100, final_score))
 
+    # A rule-detected URL warning must not be diluted into a "low risk" result
+    # by a confident-sounding AI answer. This is a conservative warning floor.
+    if rule_result["url_analysis"]:
+        final_score = max(final_score, 40)
+
+    # We do not currently query a live domain-reputation/threat-intelligence feed.
+    # Never imply that a URL has been verified clean just because heuristics found no issue.
+    detected_urls = bool(__import__("rules").extract_urls(text))
+
     # Build the final answer
     if llm_result:
         indicators = merge_unique(rule_result["indicators"], llm_result["indicators"])
@@ -169,6 +178,9 @@ def analyze(body: AnalyzeRequest):
     response = {
         "risk_score": final_score,
         "verdict": get_verdict(final_score),
+        "url_verification": (
+            "not_checked_against_live_reputation_data" if detected_urls else "no_url_detected"
+        ),
         "indicators": indicators,
         "impersonated_entity": entity,
         "url_analysis": url_analysis,
