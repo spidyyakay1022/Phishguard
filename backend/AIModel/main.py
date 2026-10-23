@@ -184,9 +184,13 @@ def analyze(body: AnalyzeRequest):
         explanation = rules_only_explanation(rule_result["reasons"])
         safe_steps = default_safe_steps(final_score)
 
+    # A clean heuristic scan is NOT proof a URL is safe. No live reputation feed is
+    # configured, so URLs with no positive findings must be labelled unverified.
+    unverified_url = detected_urls and final_score <= 30 and not rule_result["indicators"] and not (llm_result and llm_result["indicators"])
     response = {
         "risk_score": final_score,
-        "verdict": get_verdict(final_score),
+        "verdict": "UNVERIFIED" if unverified_url else get_verdict(final_score),
+        "analysis_status": "unverified" if unverified_url else ("partial" if note else "complete"),
         "url_verification": (
             "not_checked_against_live_reputation_data" if detected_urls else "no_url_detected"
         ),
