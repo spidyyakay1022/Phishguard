@@ -20,7 +20,7 @@ export default function Results() {
     )
   }
 
-  const { risk_score, summary, findings = [], url_analysis, impersonating, next_steps = [] } = result
+  const { risk_score, summary, findings = [], url_analysis, impersonating, next_steps = [], note, extracted_content, extracted_urls = [] } = result
 
   return (
     <section className="py-8">
@@ -32,10 +32,10 @@ export default function Results() {
         </div>
       </div>
 
+      {note && <p role="status" className="mt-4 rounded-lg border border-line bg-white p-3 text-sm text-muted">{note}</p>}
+      {extracted_content && <details className="mt-6 rounded-lg border border-line bg-white p-4"><summary className="cursor-pointer font-semibold">Review extracted content</summary><p className="mt-3 whitespace-pre-wrap break-words text-sm text-muted">{extracted_content}</p>{extracted_urls.length > 0 && <><h3 className="mt-3 font-semibold">Detected URL text</h3><ul className="list-disc break-all pl-5 text-sm text-muted">{extracted_urls.map((item, i) => <li key={i}>{item}</li>)}</ul></>}</details>}
       <h2 className="mt-10 font-display text-2xl font-semibold">Why it looks this way</h2>
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        {findings.map((f, i) => <FindingCard key={i} finding={f} />)}
-      </div>
+      {findings.length ? <div className="mt-3 grid gap-3 md:grid-cols-2">{findings.map((f, i) => <FindingCard key={i} finding={f} />)}</div> : <p className="mt-3 rounded-lg border border-line bg-white p-4 text-muted">No specific warning labels were returned. Read the explanation carefully; this does not guarantee the content is safe.</p>}
 
       {(url_analysis || impersonating) && (
         <div className="mt-8 grid gap-4 md:grid-cols-2">
