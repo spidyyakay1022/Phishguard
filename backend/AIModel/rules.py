@@ -15,7 +15,7 @@ URGENCY_WORDS = [
     "urgent", "urgently", "immediately", "within 24 hours", "within 24 hrs",
     "blocked", "suspended", "last warning", "final warning", "final notice",
     "act now", "expires today", "account will be closed", "deactivated",
-    "immediate action",
+    "immediate action", "expires in", "expire in", "or your prize will expire", "within 2 hours", "within two hours", "limited time",
 ]
 
 SENSITIVE_WORDS = [
@@ -233,6 +233,23 @@ def analyze_rules(text):
         score += 15
         indicators.append("Fake job offer")
         reasons.append(f'it looks like a job offer scam ("{hits[0]}")')
+
+    # 7. Advance-fee / payment demand: combine money requests with prizes,
+    # jobs, or requests for sensitive information.
+    fee_hits = _find(lowered, ["pay", "payment", "fee", "fees", "charge", "charges", "shipping", "processing", "send money", "transfer money", "registration"])
+    prize_hits = _find(lowered, PRIZE_WORDS)
+    job_hits = _find(lowered, JOB_WORDS)
+    sensitive_hits = _find(lowered, SENSITIVE_WORDS)
+    if fee_hits and (prize_hits or job_hits or sensitive_hits):
+        score += 25
+        indicators.append("Advance-fee or payment demand")
+        reasons.append("it asks for money while offering a prize, job, or account benefit")
+
+    # 8. Impersonation language combined with a threat or request.
+    if _find(lowered, ["this is paypal", "paypal security", "bank security team", "official team"]) and (sensitive_hits or fee_hits or _find(lowered, URGENCY_WORDS)):
+        score += 15
+        indicators.append("Possible impersonation")
+        reasons.append("it claims to represent a service while asking for money or sensitive details")
 
     # 7. URL checks
     url_analysis = []
