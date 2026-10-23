@@ -59,7 +59,7 @@ async function scan() {
       : (data.explanation || "No explanation was returned.");
 
     indicatorsEl.replaceChildren();
-    const indicators = Array.isArray(data.indicators) ? data.indicators : [];
+    const indicators = indicatorsFromApi;
     if (indicators.length) {
       indicators.slice(0,8).forEach(item => {
         const li = document.createElement("li");
