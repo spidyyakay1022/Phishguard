@@ -8,6 +8,9 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import os
+import json
+from urllib.request import Request, urlopen
+from urllib.parse import urlparse
 
 from rules import analyze_rules, extract_urls
 from llm import analyze_with_llm
@@ -115,6 +118,46 @@ def health():
     return {"status": "ok"}
 
 
+def check_google_safe_browsing(urls):
+    """Return (matched_urls, configured, error). No match is NOT proof of safety."""
+    api_key = os.getenv("GOOGLE_SAFE_BROWSING_API_KEY", "").strip()
+    if not api_key or not urls:
+        return [], bool(api_key), None
+    entries = []
+    for url in urls[:20]:
+        candidate = url.strip()
+        if not candidate.startswith(("http://", "https://")):
+            candidate = "https://" + candidate
+        entries.append({"url": candidate})
+    payload = {
+        "client": {"clientId": "PhishGuard", "clientVersion": "1.0.0"},
+        "threatInfo": {
+            "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE", "POTENTIALLY_HARMFUL_APPLICATION"],
+            "platformTypes": ["ANY_PLATFORM"],
+            "threatEntryTypes": ["URL"],
+            "threatEntries": entries,
+        },
+    }
+    request = Request(
+        "https://safebrowsing.googleapis.com/v4/threatMatches:find?key=" + api_key,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=5) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        matches = result.get("matches", [])
+        matched = {m.get("threat", {}).get("url", "").lower() for m in matches}
+        return [u for u in urls if any(
+            (u if u.startswith(("http://", "https://")) else "https://" + u).lower() == m
+            for m in matched
+        )], True, None
+    except Exception as error:
+        print(f"[Safe Browsing unavailable] {error}")
+        return [], True, "Google Safe Browsing lookup failed; URL safety remains unverified."
+
+
 # ---------- The main endpoint ----------
 @app.post("/analyze")
 def analyze(body: AnalyzeRequest):
@@ -166,9 +209,17 @@ def analyze(body: AnalyzeRequest):
     ):
         final_score = max(final_score, 85)
 
-    # We do not currently query a live domain-reputation/threat-intelligence feed.
-    # Never imply that a URL has been verified clean just because heuristics found no issue.
-    detected_urls = bool(extract_urls(text))
+    # Check URLs against Google Safe Browsing when GOOGLE_SAFE_BROWSING_API_KEY is configured.
+    # A clean lookup is not a guarantee that a URL is safe.
+    urls_found = extract_urls(text)
+    detected_urls = bool(urls_found)
+    matched_urls, safe_browsing_configured, safe_browsing_error = check_google_safe_browsing(urls_found)
+    if matched_urls:
+        final_score = max(final_score, 95)
+        indicators = None  # populated after merging model/rule indicators below
+        rule_result["indicators"] = merge_unique(rule_result["indicators"], ["Listed by Google Safe Browsing"])
+        for matched_url in matched_urls:
+            rule_result["url_analysis"].append({"url": matched_url, "issues": ["Listed by Google Safe Browsing as a potential threat"]})
 
     # Build the final answer
     if llm_result:
@@ -184,15 +235,17 @@ def analyze(body: AnalyzeRequest):
         explanation = rules_only_explanation(rule_result["reasons"])
         safe_steps = default_safe_steps(final_score)
 
-    # A clean heuristic scan is NOT proof a URL is safe. No live reputation feed is
-    # configured, so URLs with no positive findings must be labelled unverified.
-    unverified_url = detected_urls and final_score <= 30 and not rule_result["indicators"] and not (llm_result and llm_result["indicators"])
+    # No positive match is not a clean bill of health. URLs stay unverified unless a threat is found.
+    unverified_url = detected_urls and final_score <= 30
     response = {
         "risk_score": final_score,
         "verdict": "UNVERIFIED" if unverified_url else get_verdict(final_score),
         "analysis_status": "unverified" if unverified_url else ("partial" if note else "complete"),
         "url_verification": (
-            "not_checked_against_live_reputation_data" if detected_urls else "no_url_detected"
+            "known_threat_match" if matched_urls else
+            "checked_no_match_not_proof_safe" if safe_browsing_configured and not safe_browsing_error and detected_urls else
+            "lookup_failed" if safe_browsing_error else
+            "not_checked_no_api_key" if detected_urls else "no_url_detected"
         ),
         "indicators": indicators,
         "impersonated_entity": entity,
@@ -202,4 +255,8 @@ def analyze(body: AnalyzeRequest):
     }
     if note:
         response["note"] = note   # only added when the AI failed
+    if safe_browsing_error:
+        response["note"] = (response.get("note", "") + " " + safe_browsing_error).strip()
+    elif detected_urls and not safe_browsing_configured and not matched_urls:
+        response["note"] = (response.get("note", "") + " Google Safe Browsing API key is not configured; this URL was not checked against live threat data.").strip()
     return response
