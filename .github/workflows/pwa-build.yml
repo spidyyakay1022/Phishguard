@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [feature/pwa-install]
+    branches: [main, feature/pwa-install, fix/ci-main-branch]
 
 jobs:
   build:
