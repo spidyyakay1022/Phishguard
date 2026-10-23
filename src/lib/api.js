@@ -17,10 +17,12 @@ export async function analyze({ type = 'message', content }) {
   const urlItems = Array.isArray(data.url_analysis) ? data.url_analysis : []
   const indicators = Array.isArray(data.indicators) ? data.indicators : []
   const severity = score >= 70 ? 'high' : score >= 35 ? 'medium' : 'low'
+  const analysisStatus = data.analysis_status || (data.note ? 'partial' : 'complete')
+  const unverified = analysisStatus === 'unverified' || (data.url_verification === 'not_checked_against_live_reputation_data' && score <= 30 && indicators.length === 0)
 
   return {
     risk_score: score,
-    summary: data.explanation || data.verdict || 'Analysis complete. Review the findings before deciding what to do.',
+    summary: unverified ? 'No warning signs were detected by the available checks, but this URL has not been verified against live threat-intelligence data. Do not treat it as safe.' : (data.explanation || data.verdict || 'Analysis complete. Review the findings before deciding what to do.'),
     findings: indicators.map((item) => ({
       title: typeof item === 'string' ? item : String(item.title || item.label || 'Potential warning sign'),
       severity,
@@ -33,6 +35,7 @@ export async function analyze({ type = 'message', content }) {
     impersonating: data.impersonated_entity || null,
     next_steps: Array.isArray(data.safe_steps) ? data.safe_steps : [],
     note: data.note || null,
-    verdict: data.verdict || null,
+    verdict: unverified ? 'UNVERIFIED' : (data.verdict || null),
+    analysis_status: unverified ? 'unverified' : analysisStatus,
   }
 }
