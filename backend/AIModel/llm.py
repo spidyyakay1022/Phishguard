@@ -42,6 +42,9 @@ WHAT TO LOOK FOR:
 - Fake courier, customs, or delivery-fee messages
 - Fake job offers (work from home, pay a registration fee)
 - Suspicious links (shortened, IP address, fake spelling, odd endings like .xyz)
+- Bare domains embedded anywhere in a message, including links without https://
+- Do not treat HTTPS, a familiar brand word, or a normal-looking domain as proof a URL is safe
+- This app does not have live URL reputation/threat-intelligence lookup; if no clear signs are found, say that no common warning signs were detected and the URL could not be independently verified
 - Impersonation of banks, companies, or government. Focus on Indian examples:
   SBI, HDFC, ICICI, Paytm, PhonePe, UPI, Aadhaar, UIDAI, Income Tax
   Department, India Post, Amazon, Flipkart, courier companies.
@@ -51,7 +54,7 @@ SCORING GUIDE (risk_score, a whole number from 0 to 100):
   "do not share your OTP" warnings from a bank)
 - 31-70: some warning signs, unclear
 - 71-100: clearly a phishing or scam attempt
-Do NOT mark normal, harmless messages as high risk.
+Do NOT mark normal, harmless messages as high risk. Do NOT claim a URL is verified safe; use cautious wording when evidence is incomplete.
 
 REPLY WITH ONLY A JSON OBJECT. No extra words. No markdown. No code fences.
 Use exactly these keys:

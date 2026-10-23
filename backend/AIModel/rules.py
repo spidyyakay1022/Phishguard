@@ -82,7 +82,14 @@ BRANDS = {
 LOOKALIKE_MAP = str.maketrans({"0": "o", "1": "l", "3": "e", "5": "s"})
 
 # Finds things that start with http://, https:// or www.
-URL_PATTERN = re.compile(r"(?:https?://|www\.)[^\s<>\"']+", re.IGNORECASE)
+URL_PATTERN = re.compile(r"(?:https?://|www\\.)[^\\s<>\\\"']+", re.IGNORECASE)
+# Detect bare domains embedded in ordinary messages too; this is heuristic, not reputation proof.
+BARE_DOMAIN_PATTERN = re.compile(
+    r"(?<![@\\w.-])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+"
+    r"(?:com|in|net|org|edu|gov|co|io|ai|app|site|xyz|top|click|tk|ml|ga|cf|gq|icu|buzz|work|loan|info|biz|me|dev|online|shop|store|live|tech|cloud|support|vip|pro|uk|us|ca|au|de|jp|ru|cn|eu)"
+    r"(?::\\d{1,5})?(?:/[^\\s<>\\\"']*)?",
+    re.IGNORECASE,
+)
 
 
 def _find(text, words):
@@ -98,19 +105,23 @@ def _find(text, words):
 
 
 def extract_urls(text):
-    """Pull all links out of the text (no duplicates)."""
-    urls = [u.rstrip(".,);:!?") for u in URL_PATTERN.findall(text)]
+    """Pull explicit and bare-domain links from anywhere in the message."""
+    candidates = URL_PATTERN.findall(text)
+    candidates.extend(BARE_DOMAIN_PATTERN.findall(text))
 
-    # If the user pasted only a link without http (like "sbi-kyc.xyz/login")
-    if not urls:
-        t = text.strip().rstrip(".,);:!?")
-        if " " not in t and "." in t and len(t) > 3:
-            urls = [t]
+    # Preserve a single pasted domain even when its suffix is unfamiliar.
+    t = text.strip().rstrip(".,);:!?")
+    if not candidates and " " not in t and "." in t and len(t) > 3:
+        candidates = [t]
 
     unique = []
-    for u in urls:
-        if u not in unique:
-            unique.append(u)
+    seen = set()
+    for raw in candidates:
+        url = raw.rstrip(".,);:!?")
+        key = url.lower()
+        if url and key not in seen:
+            seen.add(key)
+            unique.append(url)
     return unique
 
 
