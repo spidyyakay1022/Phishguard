@@ -46,20 +46,23 @@ async function scan() {
     const aiUnavailable = /ai.{0,35}(unavailable|not available|failed|could not|couldn't)|(?:unavailable|not available).{0,35}ai/.test(details);
 
     // A rule-only result is not enough evidence to label a site low risk.
-    const score = aiUnavailable ? null : Math.max(0, Math.min(100, Math.round(rawScore)));
+    const unverified = data.analysis_status === "unverified";
+    const score = unverified ? null : Math.max(0, Math.min(100, Math.round(rawScore)));
     scoreEl.replaceChildren(document.createTextNode(score === null ? "—" : String(score)));
     const small = document.createElement("small");
     small.textContent = score === null ? "" : "/100";
     scoreEl.appendChild(small);
 
     verdictEl.className = "verdict " + (score === null ? "medium" : verdictClass(score));
-    verdictEl.textContent = score === null ? "INCONCLUSIVE" : (data.verdict || (score <= 30 ? "LOW RISK" : score <= 70 ? "MEDIUM RISK" : "HIGH RISK"));
-    explanationEl.textContent = score === null
-      ? "PhishGuard could not complete its AI analysis. This website has not been verified as safe; use caution and do not enter sensitive information."
-      : (data.explanation || "No explanation was returned.");
+    verdictEl.textContent = unverified ? "UNVERIFIED" : (score === null ? "INCONCLUSIVE" : (data.verdict || (score <= 30 ? "LOW RISK" : score <= 70 ? "MEDIUM RISK" : "HIGH RISK")));
+    explanationEl.textContent = unverified
+      ? "No live threat-intelligence check is configured, so this URL could not be verified. A low rule-based score does not mean the website is safe."
+      : (score === null
+        ? "PhishGuard could not complete its analysis. This website has not been verified as safe; use caution and do not enter sensitive information."
+        : (data.explanation || "No explanation was returned."));
 
     indicatorsEl.replaceChildren();
-    const indicators = indicatorsFromApi;
+    const indicators = Array.isArray(data.indicators) ? data.indicators : [];
     if (indicators.length) {
       indicators.slice(0,8).forEach(item => {
         const li = document.createElement("li");
@@ -81,7 +84,7 @@ async function scan() {
     }
 
     resultEl.classList.remove("hidden");
-    showStatus(score === null ? "Scan incomplete — site safety is unverified." : "Scan complete.");
+    showStatus(unverified || score === null ? "Scan incomplete — site safety is unverified." : "Scan complete.");
 
     try {
       const old = await chrome.storage.local.get({scanHistory:[]});
