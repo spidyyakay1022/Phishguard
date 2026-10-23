@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PhishGuard AI</title><link rel="stylesheet" href="popup.css"></head>
+<body><main class="app">
+<header class="brand"><div class="shield">🛡</div><div><h1>PhishGuard <span>AI</span></h1><p>Think before you click.</p></div><div class="live-dot" title="Extension ready"></div></header>
+<section class="current"><div class="label">CURRENT WEBSITE</div><div id="siteUrl" class="url">Click scan to inspect this tab.</div></section>
+<button id="scanBtn" class="scan-btn">↗ &nbsp; Scan current website</button>
+<div id="status" class="status" role="status">Your URL is sent to PhishGuard's analysis API when you scan.</div>
+<section id="result" class="result hidden"><div class="score-row"><div><div class="label">RISK SCORE</div><div id="score" class="score">—<small>/100</small></div></div><div id="verdict" class="verdict">Not scanned</div></div>
+<p id="explanation" class="explanation"></p><div class="label reasons-label">DETECTION INDICATORS</div><ul id="indicators"></ul><div id="apiNote" class="api-note hidden"></div>
+<p class="disclaimer">A low score does not guarantee a website is safe. PhishGuard does not currently verify URLs against a live threat-intelligence database.</p></section>
+<footer><a href="https://phishguard-akay10.vercel.app/" target="_blank" rel="noreferrer">Open PhishGuard website ↗</a><span>v1.0 MVP</span></footer></main><script src="popup.js"></script></body></html>
