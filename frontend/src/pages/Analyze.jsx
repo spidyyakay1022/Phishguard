@@ -12,7 +12,7 @@ const TABS = [
 const MAX_FILE_BYTES = 5 * 1024 * 1024
 
 function findUrls(text) {
-  const matches = text.match(/https?:\\/\\/\\S+|www\\.\\S+|\\b[a-z0-9-]+(?:\\.[a-z0-9-]+)+(?:\\/\\S*)?/gi) || []
+  const matches = text.match(/https?:\/\/\S+|www\.\S+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/\S*)?/gi) || []
   return [...new Set(matches.map((url) => url.replace(/[.,;:!?]+$/, '')))]
 }
 async function readImage(file) {
