@@ -27,7 +27,7 @@ export default function Results() {
       <div className="flex flex-col items-center gap-6 rounded-xl border border-line bg-white p-6 sm:flex-row">
         {analysis_status === "unverified" ? <div className="flex h-44 w-44 shrink-0 flex-col items-center justify-center rounded-full border-4 border-amber-400 text-center" role="img" aria-label="URL safety unverified"><span className="text-3xl font-extrabold">—</span><span className="text-sm text-muted">not verified</span></div> : <RiskGauge score={risk_score} />
         <div>
-          <p className="font-display text-3xl font-extrabold" style={{ color: analysis_status === "unverified" ? "var(--color-warn)" : levelColor(risk_score) }}>
+          <p className="font-display text-3xl font-extrabold">
             {analysis_status === "unverified" ? "Unverified" : (verdict && verdict !== "UNVERIFIED" ? verdict : levelLabel(risk_score))}
           </p>
           <p className="mt-2 text-lg">{summary}</p>
