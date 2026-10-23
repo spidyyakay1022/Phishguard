@@ -1,42 +1,47 @@
-import { mockAnalyze } from './mock.js'
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
-
-/*
-  Contract to agree on with the backend teammate.
-
-  POST /api/analyze
-    Text or URL -> JSON:    { "type": "text" | "url", "content": "..." }
-    Screenshot  -> FormData: type="image", file=<image file>
-
-  Response JSON:
-  {
-    "risk_score": 91,                               // 0-100
-    "summary": "Short plain-language verdict",
-    "findings": [{ "title": "Urgency language", "severity": "low|medium|high", "detail": "..." }],
-    "url_analysis": { "domain": "x.com", "issues": ["..."] } | null,
-    "impersonating": "PayPal" | null,
-    "next_steps": ["Do not click the link", "..."]
-  }
-*/
-export async function analyze({ type, content, file }) {
-  if (USE_MOCK) return mockAnalyze({ type, content: file ? 'screenshot' : content })
-
-  let options
-  if (type === 'image') {
-    const form = new FormData()
-    form.append('type', 'image')
-    form.append('file', file)
-    options = { method: 'POST', body: form }
-  } else {
-    options = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, content }),
-    }
+export async function analyze({ type, content }) {
+  if (type === "image") {
+    throw new Error(
+      "Screenshot/QR analysis is not connected yet. Please use Message or Link."
+    );
   }
 
-  const res = await fetch('/api/analyze', options)
-  if (!res.ok) throw new Error(`The server returned an error (${res.status}). Try again in a moment.`)
-  return res.json()
+  const text = (content || "").trim();
+
+  if (!text) {
+    throw new Error("Please enter a message or URL to analyze.");
+  }
+
+  const response = await fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || `Request failed (${response.status})`);
+  }
+
+  const score = Number(data.risk_score ?? 0);
+  const urls = data.url_analysis || [];
+
+  return {
+    risk_score: score,
+    summary: data.explanation || data.verdict || "Analysis complete",
+    findings: (data.indicators || []).map((indicator) => ({
+      title: indicator,
+      severity: score > 70 ? "high" : score > 30 ? "medium" : "low",
+      detail: data.explanation || indicator,
+    })),
+    url_analysis: urls.length
+      ? {
+          domain: urls.map((item) => item.url).join(", "),
+          issues: [...new Set(urls.flatMap((item) => item.issues || []))],
+        }
+      : null,
+    impersonating: data.impersonated_entity || null,
+    next_steps: data.safe_steps || [],
+    note: data.note || null,
+  };
 }
