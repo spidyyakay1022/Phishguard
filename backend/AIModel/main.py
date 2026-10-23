@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import os
 
-from rules import analyze_rules
+from rules import analyze_rules, extract_urls
 from llm import analyze_with_llm
 
 MAX_CHARS = 5000    # longest message we accept
@@ -159,7 +159,7 @@ def analyze(body: AnalyzeRequest):
 
     # We do not currently query a live domain-reputation/threat-intelligence feed.
     # Never imply that a URL has been verified clean just because heuristics found no issue.
-    detected_urls = bool(__import__("rules").extract_urls(text))
+    detected_urls = bool(extract_urls(text))
 
     # Build the final answer
     if llm_result:
